@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel do Professor · Conclusões</title>
+<style>
+  :root{
+    --ink:#13241f;
+    --paper:#f3efe6;
+    --line:#d8d0bf;
+    --accent:#1f6f5c;
+    --accent-soft:#e4efe9;
+    --warn:#b4541f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:20px 16px 60px}
+
+  /* ---- Login ---- */
+  .gate{
+    min-height:80vh;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;gap:18px
+  }
+  .gate h1{font-size:1.6rem;letter-spacing:-.5px}
+  .gate p{color:#5f5a4d;max-width:280px}
+  .gate input{
+    width:240px;padding:14px 16px;font-size:1rem;
+    border:2px solid var(--line);border-radius:14px;background:#fff;text-align:center
+  }
+  .gate input:focus{outline:none;border-color:var(--accent)}
+  .btn{
+    background:var(--accent);color:#fff;border:none;
+    padding:14px 28px;font-size:1rem;font-weight:bold;
+    border-radius:14px;cursor:pointer;transition:transform .08s
+  }
+  .btn:active{transform:scale(.97)}
+  .err{color:var(--warn);font-size:.9rem;min-height:1.1em}
+
+  /* ---- Header ---- */
+  header{
+    display:flex;align-items:flex-end;justify-content:space-between;
+    border-bottom:3px solid var(--ink);padding-bottom:12px;margin-bottom:6px;flex-wrap:wrap;gap:8px
+  }
+  header h1{font-size:1.5rem;letter-spacing:-.5px}
+  header .sub{font-size:.8rem;color:#6b6555;text-transform:uppercase;letter-spacing:1px}
+  .tools{display:flex;gap:8px;align-items:center;margin:16px 0}
+  .tools select,.tools button{
+    padding:10px 12px;border:2px solid var(--line);border-radius:10px;
+    background:#fff;font-size:.92rem;font-family:inherit;color:var(--ink)
+  }
+  .tools button{cursor:pointer;background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:bold}
+
+  .count{
+    display:flex;gap:18px;margin:4px 0 18px;flex-wrap:wrap
+  }
+  .stat{background:#fff;border:2px solid var(--line);border-radius:14px;padding:12px 18px;flex:1;min-width:120px}
+  .stat .n{font-size:1.8rem;font-weight:bold;color:var(--accent);line-height:1}
+  .stat .l{font-size:.78rem;text-transform:uppercase;letter-spacing:.5px;color:#6b6555;margin-top:4px}
+
+  /* ---- List ---- */
+  ul.list{list-style:none}
+  ul.list li{
+    background:#fff;border:1px solid var(--line);border-left:5px solid var(--accent);
+    border-radius:10px;padding:12px 14px;margin-bottom:8px;
+    display:flex;justify-content:space-between;align-items:center;gap:10px
+  }
+  .who{font-weight:bold;font-size:1rem}
+  .meta{font-size:.78rem;color:#6b6555;margin-top:2px}
+  .when{font-size:.8rem;color:#6b6555;text-align:right;white-space:nowrap}
+  .empty,.loading{text-align:center;padding:40px 10px;color:#6b6555}
+  .badge{display:inline-block;background:var(--accent-soft);color:var(--accent);
+    font-size:.72rem;padding:2px 8px;border-radius:20px;margin-left:6px}
+  .foot{text-align:center;margin-top:28px;font-size:.78rem;color:#8a8576}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- LOGIN -->
+  <section id="gate" class="gate">
+    <h1>Painel do Professor</h1>
+    <p>Veja quais alunos concluíram a atividade.</p>
+    <input id="pass" type="password" placeholder="Senha" autocomplete="off">
+    <button class="btn" onclick="entrar()">Entrar</button>
+    <div class="err" id="erro"></div>
+  </section>
+
+  <!-- PAINEL -->
+  <section id="painel" class="hidden">
+    <header>
+      <div>
+        <h1>Conclusões</h1>
+        <div class="sub">Prof. Natanael · Matemática</div>
+      </div>
+    </header>
+
+    <div class="count" id="stats"></div>
+
+    <div class="tools">
+      <select id="filtroTurma" onchange="render()">
+        <option value="">Todas as turmas</option>
+      </select>
+      <button onclick="carregar()">↻ Atualizar</button>
+    </div>
+
+    <div id="conteudo">
+      <div class="loading">Carregando…</div>
+    </div>
+
+    <div class="foot">Atualizado automaticamente ao abrir · toque em ↻ para recarregar</div>
+  </section>
+
+</div>
+
+<script>
+/* ====== CONFIGURAÇÃO ====== */
+const SUPABASE_URL = "https://bfwzzvirgrwtugakocky.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmd3p6dmlyZ3J3dHVnYWtvY2t5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyOTAzMTcsImV4cCI6MjA5Nzg2NjMxN30.s9FbjRaGeo6JgRPUY0ihHdyxqGtK8fhl01pYsdc2ddM";
+const SENHA = "natanael";
+const TABELA = "progresso_matematica";
+/* ========================== */
+
+let dados = [];
+
+function entrar(){
+  const v = document.getElementById('pass').value;
+  if(v === SENHA){
+    document.getElementById('gate').classList.add('hidden');
+    document.getElementById('painel').classList.remove('hidden');
+    carregar();
+  } else {
+    document.getElementById('erro').textContent = "Senha incorreta.";
+  }
+}
+document.getElementById('pass').addEventListener('keydown',e=>{ if(e.key==='Enter') entrar(); });
+
+async function carregar(){
+  document.getElementById('conteudo').innerHTML = '<div class="loading">Carregando…</div>';
+  try{
+    const url = `${SUPABASE_URL}/rest/v1/${TABELA}?select=*&order=created_at.desc`;
+    const r = await fetch(url,{
+      headers:{ apikey:SUPABASE_KEY, Authorization:`Bearer ${SUPABASE_KEY}` }
+    });
+    if(!r.ok) throw new Error(`HTTP ${r.status} — ${await r.text()}`);
+    dados = await r.json();
+    montarFiltro();
+    render();
+  }catch(err){
+    document.getElementById('conteudo').innerHTML =
+      `<div class="empty">Não consegui carregar os dados.<br><br>
+      <small>${err.message}</small><br><br>
+      Verifique se a permissão de leitura (SELECT) foi liberada no Supabase.</div>`;
+  }
+}
+
+function montarFiltro(){
+  const sel = document.getElementById('filtroTurma');
+  const turmas = [...new Set(dados.map(d=>d.turma).filter(Boolean))].sort();
+  const atual = sel.value;
+  sel.innerHTML = '<option value="">Todas as turmas</option>' +
+    turmas.map(t=>`<option value="${t}">${t}</option>`).join('');
+  sel.value = atual;
+}
+
+function fmtData(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+
+function render(){
+  const turma = document.getElementById('filtroTurma').value;
+  let lista = turma ? dados.filter(d=>d.turma===turma) : dados;
+
+  const alunosUnicos = new Set(lista.map(d=>d.nome_aluno)).size;
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="n">${alunosUnicos}</div><div class="l">Alunos concluíram</div></div>
+    <div class="stat"><div class="n">${lista.length}</div><div class="l">Total de envios</div></div>
+  `;
+
+  if(lista.length === 0){
+    document.getElementById('conteudo').innerHTML =
+      '<div class="empty">Nenhum aluno concluiu ainda.</div>';
+    return;
+  }
+
+  document.getElementById('conteudo').innerHTML =
+    '<ul class="list">' + lista.map(d=>`
+      <li>
+        <div>
+          <div class="who">${d.nome_aluno || '(sem nome)'}${d.turma?`<span class="badge">${d.turma}</span>`:''}</div>
+          <div class="meta">${d.atividade || ''}</div>
+        </div>
+        <div class="when">${fmtData(d.created_at)}</div>
+      </li>`).join('') + '</ul>';
+}
+</script>
+</body>
+</html>
