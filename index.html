@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Revisão de Sistemas - 9º 4</title>
+    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Polyfill para Celular -->
     <script src="https://unpkg.com/drag-drop-touch"></script>
     <style>
         :root {
@@ -207,7 +209,7 @@
 
     <script>
         const supaUrl = 'https://bfwzzvirgrwtugakocky.supabase.co';
-        const supaKey = 'sb_publishable_Tmdr-SdicxjWudVAtoLbfA_qZqGvUbB';
+        const supaKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmd3p6dmlyZ3J3dHVnYWtvY2t5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyOTAzMTcsImV4cCI6MjA5Nzg2NjMxN30.s9FbjRaGeo6JgRPUY0ihHdyxqGtK8fhl01pYsdc2ddM';
         const clienteSupabase = supabase.createClient(supaUrl, supaKey);
 
         let nomeAlunoAtual = "";
