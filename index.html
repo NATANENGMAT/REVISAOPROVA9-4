@@ -24,7 +24,7 @@
             flex-direction: column;
             align-items: center;
             color: #334155;
-            overscroll-behavior-y: contain; /* Evita puxar a tela para atualizar no celular */
+            overscroll-behavior-y: contain; 
         }
 
         .container {
@@ -72,7 +72,7 @@
             display: inline-block; background-color: var(--warning); color: white;
             padding: 4px 15px; border-radius: 8px; cursor: grab; font-weight: bold;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s; margin: 0 5px;
-            touch-action: none; /* Essencial para arrastar no celular */
+            touch-action: none;
         }
         .val-pill:active { cursor: grabbing; transform: scale(1.1); }
         
@@ -84,7 +84,6 @@
         }
         .drop-zone.hover { background-color: #e0f2fe; border-color: var(--accent); color: var(--accent); }
 
-        /* FORMATO DE FRAÇÃO */
         .fraction {
             display: inline-flex; flex-direction: column; align-items: center;
             vertical-align: middle; margin: 0 8px; line-height: 1.2;
@@ -119,7 +118,6 @@
         #feedback { text-align: center; font-weight: bold; font-size: 1.1rem; margin-top: 15px; min-height: 28px; }
         .incorrect { color: #ef4444; }
 
-        /* AJUSTES PARA CELULARES */
         @media (max-width: 600px) {
             h1 { font-size: 1.4rem; }
             .container { padding: 15px 10px; }
@@ -208,7 +206,6 @@
     </div>
 
     <script>
-        // --- CONFIGURAÇÃO DO SUPABASE (Variável corrigida para evitar conflito) ---
         const supaUrl = 'https://bfwzzvirgrwtugakocky.supabase.co';
         const supaKey = 'sb_publishable_Tmdr-SdicxjWudVAtoLbfA_qZqGvUbB';
         const clienteSupabase = supabase.createClient(supaUrl, supaKey);
@@ -227,7 +224,6 @@
             init(); 
         }
 
-        // --- BANCO DE 10 PROBLEMAS (Respostas Inteiras) ---
         const problems = [
             { v1: 'm', v2: 'n', a1: 3, b1: 2, c1: 12, a2: 5, b2: -2, c2: 4, ans1: 2, ans2: 3 },
             { v1: 'x', v2: 'y', a1: 4, b1: 3, c1: 23, a2: 2, b2: -3, c2: 7, ans1: 5, ans2: 1 },
@@ -501,13 +497,12 @@
                     ]);
 
                 if (error) {
-                    console.error('Erro ao salvar no banco:', error);
-                    alert("Atenção: Ocorreu um erro de rede ao registrar. Tire um print e avise o professor Natanael na sala.");
+                    console.error('ERRO DETALHADO DO SUPABASE:', error);
+                    alert("Ocorreu um erro ao salvar o progresso: " + error.message + "\n\nPor favor, tire print dessa tela e envie ao professor Natanael.");
                 } else {
                     alert(`Parabéns, ${nomeAlunoAtual}! Sua atividade foi registrada com sucesso!`);
+                    location.reload(); 
                 }
-                
-                location.reload(); 
             }
         }
 
