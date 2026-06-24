@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Revisão de Sistemas - 9º 4</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/drag-drop-touch"></script>
+    <style>
+        :root {
+            --primary: #1e293b;
+            --accent: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --bg: #f8fafc;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #334155;
+            overscroll-behavior-y: contain; /* Evita puxar a tela para atualizar no celular */
+        }
+
+        .container {
+            max-width: 650px;
+            width: 100%;
+            background: white;
+            padding: 25px 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+
+        h1 { font-size: 1.6rem; color: var(--primary); margin-bottom: 5px; text-align: center;}
+        h3 { font-size: 1.1rem; color: var(--accent); margin-top: 0; text-align: center;}
+        
+        .instructions {
+            background-color: #eff6ff; padding: 12px; border-radius: 8px;
+            margin: 15px 0; font-weight: 500; color: #1e40af;
+            border-left: 4px solid var(--accent); font-size: 1.1rem;
+            text-align: center;
+        }
+
+        select {
+            width: 100%; padding: 15px; font-size: 1.1rem; border: 2px solid #cbd5e1;
+            border-radius: 8px; margin-bottom: 20px; outline: none; font-weight: bold;
+            color: var(--primary); background-color: #f8fafc; box-sizing: border-box;
+        }
+        select:focus { border-color: var(--accent); }
+
+        .system-box {
+            display: flex; justify-content: center; align-items: center;
+            margin: 20px 0; font-size: 2rem; font-weight: 600;
+        }
+        .bracket { font-size: 4.5rem; font-weight: 100; margin-right: 15px; color: var(--primary); line-height: 0.9;}
+        
+        .equations-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+        .eq-row { padding: 5px 15px; border-radius: 8px; transition: 0.3s; }
+        .selectable:hover, .selectable:active { background: #f1f5f9; cursor: pointer; outline: 2px dashed var(--accent); }
+        .selected-eq { outline: 2px solid var(--success); background: #ecfdf5;}
+        
+        .eliminate { color: #f87171; text-decoration: line-through; opacity: 0.3; }
+
+        .val-pill {
+            display: inline-block; background-color: var(--warning); color: white;
+            padding: 4px 15px; border-radius: 8px; cursor: grab; font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s; margin: 0 5px;
+            touch-action: none; /* Essencial para arrastar no celular */
+        }
+        .val-pill:active { cursor: grabbing; transform: scale(1.1); }
+        
+        .drop-zone {
+            display: inline-block; min-width: 50px; min-height: 35px;
+            border: 2px dashed #94a3b8; background-color: white; border-radius: 8px;
+            padding: 0 10px; color: #94a3b8; font-size: 1.2rem; vertical-align: middle;
+            line-height: 35px; text-align: center; transition: all 0.3s; margin: 0 5px;
+        }
+        .drop-zone.hover { background-color: #e0f2fe; border-color: var(--accent); color: var(--accent); }
+
+        /* FORMATO DE FRAÇÃO */
+        .fraction {
+            display: inline-flex; flex-direction: column; align-items: center;
+            vertical-align: middle; margin: 0 8px; line-height: 1.2;
+        }
+        .num { border-bottom: 3px solid var(--primary); padding: 0 10px 5px; min-width: 30px; text-align: center; }
+        .den { padding: 5px 10px 0; min-width: 30px; text-align: center; }
+        .den.drop-zone { margin: 5px 0 0 0; }
+
+        .resolution-area { display: flex; flex-direction: column; align-items: center; width: 100%; }
+        .math-line { font-size: 1.6rem; font-weight: 600; margin: 15px 0; display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; white-space: nowrap; }
+        
+        input[type="number"] {
+            width: 60px; padding: 5px; font-size: 1.3rem; text-align: center;
+            border: 2px solid #cbd5e1; border-radius: 8px; outline: none; font-weight: bold; color: var(--primary);
+        }
+        input[type="number"]:focus { border-color: var(--accent); }
+
+        .sub-steps { display: flex; flex-direction: column; align-items: flex-start; padding-left: 10px; font-size: 1.6rem; margin-top: 15px; gap: 15px; width: 100%; }
+
+        button {
+            width: 100%; padding: 14px; font-size: 1.2rem; font-weight: bold; border: none; border-radius: 8px;
+            cursor: pointer; transition: background 0.2s; margin-top: 15px; background-color: var(--accent); color: white;
+            box-sizing: border-box;
+        }
+        button:hover { background-color: #2563eb; }
+
+        .storage-box {
+            margin-top: 20px; padding: 15px; border: 2px solid #e2e8f0; border-radius: 12px; display: none;
+            text-align: center; font-size: 1.2rem; font-weight: bold; background: #f8fafc;
+        }
+
+        #feedback { text-align: center; font-weight: bold; font-size: 1.1rem; margin-top: 15px; min-height: 28px; }
+        .incorrect { color: #ef4444; }
+
+        /* AJUSTES PARA CELULARES */
+        @media (max-width: 600px) {
+            h1 { font-size: 1.4rem; }
+            .container { padding: 15px 10px; }
+            .bracket { font-size: 3.5rem; margin-right: 8px; }
+            .system-box { font-size: 1.5rem; }
+            .eq-row { padding: 5px; }
+            .math-line, .sub-steps { font-size: 1.2rem; }
+            .val-pill { padding: 4px 10px; font-size: 1.1rem; }
+            .drop-zone { min-width: 40px; min-height: 30px; line-height: 30px; font-size: 1.1rem; }
+            input[type="number"] { width: 50px; font-size: 1.2rem; padding: 4px; }
+            .fraction { margin: 0 4px; }
+            .num, .den { min-width: 20px; padding: 0 5px 3px; }
+            .den { padding: 3px 5px 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="tela-login" class="container">
+        <h1>REVISÃO DE SISTEMA DE EQUAÇÃO</h1>
+        <h3>Professor Natanael - Matemática (9º 4)</h3>
+        <p style="text-align: center; font-size: 0.95rem;">Selecione seu nome na lista abaixo para registrar seu progresso:</p>
+        
+        <select id="aluno-select">
+            <option value="">-- Escolha seu nome --</option>
+            <option value="ALEXSANDER DE OLIVEIRA RIBEIRO">ALEXSANDER DE OLIVEIRA RIBEIRO</option>
+            <option value="ANGELO GABRIEL ALVES COSTA">ANGELO GABRIEL ALVES COSTA</option>
+            <option value="ASAFE RHYETRO DE OLIVEIRA REBOUCAS">ASAFE RHYETRO DE OLIVEIRA REBOUCAS</option>
+            <option value="BRISA LOHAINY COSTA DE ANDRADE">BRISA LOHAINY COSTA DE ANDRADE</option>
+            <option value="DAVI OLIVEIRA PIMENTEL">DAVI OLIVEIRA PIMENTEL</option>
+            <option value="DERICK VINICIUS DIAS ROCHA">DERICK VINICIUS DIAS ROCHA</option>
+            <option value="EMILLY FERNANDA DA SILVA RODRIGUES">EMILLY FERNANDA DA SILVA RODRIGUES</option>
+            <option value="ERIKE LUIZ SANTOS DE OLIVEIRA">ERIKE LUIZ SANTOS DE OLIVEIRA</option>
+            <option value="FABIO GONCALVES BARBOSA">FABIO GONCALVES BARBOSA</option>
+            <option value="FERNANDO NASCIMENTO DE OLIVEIRA">FERNANDO NASCIMENTO DE OLIVEIRA</option>
+            <option value="GUILHERME DA SILVA FURTADO">GUILHERME DA SILVA FURTADO</option>
+            <option value="GUILHERME VALE DO NASCIMENTO">GUILHERME VALE DO NASCIMENTO</option>
+            <option value="ISMAEL GOMES DA SILVA">ISMAEL GOMES DA SILVA</option>
+            <option value="JHON ANDREW FERREIRA LIMA">JHON ANDREW FERREIRA LIMA</option>
+            <option value="JOSE VICTOR SILVA CORREA">JOSE VICTOR SILVA CORREA</option>
+            <option value="JOSUE NICHOLLAS SILVA DE SOUZA">JOSUE NICHOLLAS SILVA DE SOUZA</option>
+            <option value="KAUA CANTUARIO SILVA">KAUA CANTUARIO SILVA</option>
+            <option value="MANUELA SILVA DA SILVA">MANUELA SILVA DA SILVA</option>
+            <option value="MARIA EDUARDA COSTA MARTINS">MARIA EDUARDA COSTA MARTINS</option>
+            <option value="MAYSA PYETRA ALENCAR FERREIRA">MAYSA PYETRA ALENCAR FERREIRA</option>
+            <option value="NATHANAEL DUTRA MONTEIRO">NATHANAEL DUTRA MONTEIRO</option>
+            <option value="PAULO SAMUEL CARDOSO BERNARDO">PAULO SAMUEL CARDOSO BERNARDO</option>
+            <option value="PIETRO FERREIRA DE SOUZA">PIETRO FERREIRA DE SOUZA</option>
+            <option value="RENAN GOMES DE SOUZA">RENAN GOMES DE SOUZA</option>
+            <option value="RENAN RAMOS COSTA">RENAN RAMOS COSTA</option>
+            <option value="SAMILA HELOISA RIBEIRO GONCALVES">SAMILA HELOISA RIBEIRO GONCALVES</option>
+            <option value="SARA CRISTINA LIMA PINHEIRO">SARA CRISTINA LIMA PINHEIRO</option>
+            <option value="SARA FERNANDA LIMA DE JESUS MORAES">SARA FERNANDA LIMA DE JESUS MORAES</option>
+            <option value="SERGIO LUCAS DA GLORIA LIMA">SERGIO LUCAS DA GLORIA LIMA</option>
+            <option value="VITOR DANIEL TAVARES DE SOUSA">VITOR DANIEL TAVARES DE SOUSA</option>
+            <option value="EMILY LAIS CABRERA DA SILVA">EMILY LAIS CABRERA DA SILVA</option>
+            <option value="ANNE BEATRICE PAIXAO SILVA">ANNE BEATRICE PAIXAO SILVA</option>
+            <option value="THAYNNA RUANNE COSTA DE SA">THAYNNA RUANNE COSTA DE SA</option>
+            <option value="ANA JULIA CARDOSO DA SILVA">ANA JULIA CARDOSO DA SILVA</option>
+            <option value="SARA VICTORIA AZEVEDO DOS SANTOS">SARA VICTORIA AZEVEDO DOS SANTOS</option>
+            <option value="SAMANTA VITORIA RODRIGUES CUNHA">SAMANTA VITORIA RODRIGUES CUNHA</option>
+            <option value="LUIZ FABIANO NOBRE SAMPAIO">LUIZ FABIANO NOBRE SAMPAIO</option>
+            <option value="CARLOS EDUARDO BATISTA NAZARIO">CARLOS EDUARDO BATISTA NAZARIO</option>
+        </select>
+        
+        <button onclick="iniciarApp()" style="background-color: var(--success);">Iniciar Atividade</button>
+    </div>
+
+    <div id="app-principal" class="container" style="display: none;">
+        <div id="level-title" style="text-align: center; font-weight:bold; color:var(--accent);">Nível 1</div>
+        
+        <div class="instructions" id="guide">Clique em "Somar Equações" para eliminar os termos opostos.</div>
+
+        <div class="system-box">
+            <div class="bracket" id="bracket">{</div>
+            <div class="equations-stack" id="stack"></div>
+        </div>
+
+        <div class="resolution-area" id="action-area"></div>
+        
+        <div class="storage-box" id="storage">
+            Valor Guardado: <span id="stored-val-container"></span>
+        </div>
+
+        <div id="feedback"></div>
+    </div>
+
+    <script>
+        // --- CONFIGURAÇÃO DO SUPABASE (Variável corrigida para evitar conflito) ---
+        const supaUrl = 'https://bfwzzvirgrwtugakocky.supabase.co';
+        const supaKey = 'sb_publishable_Tmdr-SdicxjWudVAtoLbfA_qZqGvUbB';
+        const clienteSupabase = supabase.createClient(supaUrl, supaKey);
+
+        let nomeAlunoAtual = "";
+
+        function iniciarApp() {
+            const select = document.getElementById('aluno-select');
+            if (select.value === "") {
+                alert("Por favor, selecione seu nome na lista antes de começar!");
+                return;
+            }
+            nomeAlunoAtual = select.value;
+            document.getElementById('tela-login').style.display = 'none';
+            document.getElementById('app-principal').style.display = 'block';
+            init(); 
+        }
+
+        // --- BANCO DE 10 PROBLEMAS (Respostas Inteiras) ---
+        const problems = [
+            { v1: 'm', v2: 'n', a1: 3, b1: 2, c1: 12, a2: 5, b2: -2, c2: 4, ans1: 2, ans2: 3 },
+            { v1: 'x', v2: 'y', a1: 4, b1: 3, c1: 23, a2: 2, b2: -3, c2: 7, ans1: 5, ans2: 1 },
+            { v1: 'p', v2: 'q', a1: 2, b1: 5, c1: 29, a2: 4, b2: -5, c2: 13, ans1: 7, ans2: 3 },
+            { v1: 'a', v2: 'b', a1: 5, b1: 2, c1: 34, a2: 1, b2: -2, c2: 2, ans1: 6, ans2: 2 },
+            { v1: 'x', v2: 'y', a1: 3, b1: 4, c1: 24, a2: 5, b2: -4, c2: 8, ans1: 4, ans2: 3 },
+            { v1: 'm', v2: 'n', a1: 1, b1: 3, c1: 13, a2: 2, b2: -3, c2: -1, ans1: 4, ans2: 3 },
+            { v1: 'a', v2: 'b', a1: 6, b1: 2, c1: 28, a2: 3, b2: -2, c2: 8, ans1: 4, ans2: 2 },
+            { v1: 'p', v2: 'q', a1: 4, b1: 5, c1: 35, a2: 3, b2: -5, c2: 0, ans1: 5, ans2: 3 },
+            { v1: 'x', v2: 'y', a1: 2, b1: 7, c1: 30, a2: 3, b2: -7, c2: 10, ans1: 8, ans2: 2 },
+            { v1: 'm', v2: 'n', a1: 5, b1: 3, c1: 31, a2: 2, b2: -3, c2: 4, ans1: 5, ans2: 2 }
+        ];
+
+        let cur = 0;
+        let p;
+        let foundV1 = 0;
+
+        function allowDrop(ev) { ev.preventDefault(); ev.target.classList.add('hover'); }
+        function dragLeave(ev) { ev.target.classList.remove('hover'); }
+        function drag(ev) { ev.dataTransfer.setData("text", ev.target.id); }
+
+        function init() {
+            p = problems[cur];
+            document.getElementById('level-title').innerText = `Problema ${cur + 1} de ${problems.length}`;
+            document.getElementById('guide').innerText = "Clique em 'Somar Equações' para juntar as equações e eliminar os opostos.";
+            document.getElementById('storage').style.display = 'none';
+            document.getElementById('bracket').style.display = 'block';
+            document.getElementById('feedback').innerText = '';
+
+            let a2Str = p.a2 === 1 ? '' : p.a2;
+            let a1Str = p.a1 === 1 ? '' : p.a1;
+
+            document.getElementById('stack').innerHTML = `
+                <div class="eq-row" id="eq1">${a1Str}${p.v1} <span class="term-op">+${Math.abs(p.b1)}${p.v2}</span> = ${p.c1}</div>
+                <div class="eq-row" id="eq2">${a2Str}${p.v1} <span class="term-op">-${Math.abs(p.b2)}${p.v2}</span> = ${p.c2}</div>
+            `;
+            
+            document.getElementById('action-area').innerHTML = `<button onclick="stepSum()">⚡ Somar Equações</button>`;
+        }
+
+        function stepSum() {
+            document.querySelectorAll('.term-op').forEach(el => el.classList.add('eliminate'));
+            
+            setTimeout(() => {
+                document.getElementById('bracket').style.display = 'none';
+                let sumA = p.a1 + p.a2;
+                let sumC = p.c1 + p.c2;
+
+                document.getElementById('stack').innerHTML = `<div class="math-line">${sumA}${p.v1} = ${sumC}</div>`;
+                document.getElementById('guide').innerText = `Arraste o coeficiente ${sumA} para debaixo do ${sumC} formando uma fração!`;
+
+                document.getElementById('action-area').innerHTML = `
+                    <div class="math-line">
+                        <span class="val-pill" id="drag-coeff" draggable="true" ondragstart="drag(event)">${sumA}</span>${p.v1} = 
+                        <div class="fraction">
+                            <div class="num">${sumC}</div>
+                            <div class="den drop-zone" ondrop="dropDiv(event, ${sumC}, ${sumA})" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">?</div>
+                        </div>
+                    </div>`;
+            }, 600);
+        }
+
+        function dropDiv(ev, c, a) {
+            ev.preventDefault();
+            if(ev.dataTransfer.getData("text") !== "drag-coeff") return;
+
+            foundV1 = c / a;
+            document.getElementById('guide').innerText = `Escreva o resultado da fração (divisão) para achar ${p.v1}.`;
+            
+            document.getElementById('action-area').innerHTML = `
+                <div class="math-line">
+                    ${p.v1} = 
+                    <div class="fraction">
+                        <div class="num">${c}</div>
+                        <div class="den">${a}</div>
+                    </div>
+                    = <input type="number" id="ans-v1">
+                </div>
+                <button onclick="checkV1(${foundV1})">Confirmar ${p.v1}</button>
+            `;
+        }
+
+        function checkV1(correctVal) {
+            let val = parseFloat(document.getElementById('ans-v1').value);
+            if(val === correctVal) {
+                document.getElementById('storage').style.display = 'block';
+                document.getElementById('stored-val-container').innerHTML = `<span class="val-pill" id="stored-val" draggable="true" ondragstart="drag(event)">${val}</span>`;
+                stepSelectEq();
+            } else {
+                showError("Divisão incorreta!");
+            }
+        }
+
+        function stepSelectEq() {
+            document.getElementById('guide').innerText = `Ótimo! O valor de ${p.v1} está guardado. Clique em uma das equações originais abaixo para substituir.`;
+            document.getElementById('action-area').innerHTML = '';
+
+            let a2Str = p.a2 === 1 ? '' : p.a2;
+            let a1Str = p.a1 === 1 ? '' : p.a1;
+
+            document.getElementById('stack').innerHTML = `
+                <div class="eq-row selectable" id="sel1" onclick="stepSubst(1)">${a1Str}${p.v1} + ${p.b1}${p.v2} = ${p.c1}</div>
+                <div class="eq-row selectable" id="sel2" onclick="stepSubst(2)">${a2Str}${p.v1} - ${Math.abs(p.b2)}${p.v2} = ${p.c2}</div>
+                <div id="sub-steps-container" class="sub-steps"></div>
+            `;
+        }
+
+        let chosenA, chosenB, chosenC;
+
+        function stepSubst(choice) {
+            document.getElementById('sel1').classList.remove('selectable');
+            document.getElementById('sel2').classList.remove('selectable');
+            document.getElementById('sel1').onclick = null;
+            document.getElementById('sel2').onclick = null;
+
+            if(choice === 1) {
+                document.getElementById('sel1').classList.add('selected-eq');
+                document.getElementById('sel2').style.display = 'none';
+                chosenA = p.a1; chosenB = p.b1; chosenC = p.c1;
+            } else {
+                document.getElementById('sel2').classList.add('selected-eq');
+                document.getElementById('sel1').style.display = 'none';
+                chosenA = p.a2; chosenB = p.b2; chosenC = p.c2;
+            }
+
+            let bSign = chosenB > 0 ? '+' : '-';
+            let bAbs = Math.abs(chosenB);
+            let aStr = chosenA === 1 ? '' : chosenA;
+
+            document.getElementById('guide').innerText = `Arraste o valor guardado para dentro do parênteses.`;
+
+            document.getElementById('sub-steps-container').innerHTML = `
+                <div class="math-line" style="margin:0; justify-content: flex-start;">
+                    ${aStr} . ( <div class="drop-zone" style="min-width:35px;height:30px;line-height:30px;padding:0;" ondrop="dropParen(event, '${bSign}', ${bAbs})" ondragover="allowDrop(event)"></div> ) ${bSign} ${bAbs}${p.v2} = ${chosenC}
+                </div>
+            `;
+        }
+
+        function dropParen(ev, bSign, bAbs) {
+            ev.preventDefault();
+            if(ev.dataTransfer.getData("text") !== "stored-val") return;
+            
+            ev.target.innerText = foundV1;
+            ev.target.classList.remove('drop-zone');
+            ev.target.style.color = "var(--warning)";
+
+            document.getElementById('guide').innerText = `Qual o resultado de ${chosenA} vezes ${foundV1}? Escreva na caixa.`;
+            
+            document.getElementById('sub-steps-container').innerHTML += `
+                <div class="math-line" style="margin:0; justify-content: flex-start;">
+                    <input type="number" id="in-mul"> ${bSign} ${bAbs}${p.v2} = ${chosenC}
+                </div>
+            `;
+            
+            document.getElementById('action-area').innerHTML = `<button onclick="checkMul(${chosenA * foundV1}, '${bSign}', ${bAbs})">Resolver Multiplicação</button>`;
+        }
+
+        function checkMul(correctMul, bSign, bAbs) {
+            let val = parseFloat(document.getElementById('in-mul').value);
+            if(val !== correctMul) { showError("Multiplicação incorreta."); return; }
+
+            const inputEl = document.getElementById('in-mul');
+            inputEl.outerHTML = `<span class="val-pill" id="drag-num" draggable="true" ondragstart="drag(event)" style="margin:0 6px 0 0;">${correctMul}</span>`;
+
+            document.getElementById('guide').innerText = `Arraste o ${correctMul} para o outro lado do igual. O sinal vai inverter!`;
+            document.getElementById('action-area').innerHTML = '';
+
+            document.getElementById('sub-steps-container').lastElementChild.innerHTML += `
+                <div class="drop-zone" ondrop="dropSide(event, ${correctMul}, '${bSign}', ${bAbs})" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">?</div>
+            `;
+        }
+
+        function dropSide(ev, mulVal, bSign, bAbs) {
+            ev.preventDefault();
+            if(ev.dataTransfer.getData("text") !== "drag-num") return;
+
+            let newSign = mulVal > 0 ? '-' : '+';
+            let targetCalc = chosenC - mulVal;
+
+            document.getElementById('guide').innerText = `Resolva a subtração final no lado direito.`;
+            
+            document.getElementById('drag-num').remove();
+            ev.target.outerHTML = `<span>${newSign} ${Math.abs(mulVal)}</span>`;
+
+            document.getElementById('sub-steps-container').innerHTML += `
+                <div class="math-line" style="margin:0; justify-content: flex-start;">
+                    ${bSign === '-' ? '-' : ''}${bAbs}${p.v2} = <input type="number" id="in-sub">
+                </div>
+            `;
+
+            document.getElementById('action-area').innerHTML = `<button onclick="checkSub(${targetCalc}, '${bSign}', ${bAbs})">Calcular</button>`;
+        }
+
+        function checkSub(correctCalc, bSign, bAbs) {
+            let val = parseFloat(document.getElementById('in-sub').value);
+            if(val !== correctCalc) { showError("Subtração incorreta."); return; }
+            
+            let coeff = bSign === '-' ? -bAbs : bAbs;
+            document.getElementById('in-sub').outerHTML = `<span>${correctCalc}</span>`;
+
+            if(coeff === 1 || coeff === -1) { 
+                if(coeff === -1) correctCalc = correctCalc * -1;
+                finishLevel(correctCalc); 
+                return; 
+            }
+
+            document.getElementById('guide').innerText = `Arraste o ${coeff} para baixo formando a fração final!`;
+            
+            let line = document.getElementById('sub-steps-container').lastElementChild;
+            line.innerHTML = `
+                <span class="val-pill" id="drag-last" draggable="true" ondragstart="drag(event)">${coeff}</span>${p.v2} = 
+                <div class="fraction">
+                    <div class="num">${correctCalc}</div>
+                    <div class="den drop-zone" ondrop="dropLast(event, ${correctCalc}, ${coeff})" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">?</div>
+                </div>
+            `;
+            
+            document.getElementById('action-area').innerHTML = '';
+        }
+
+        function dropLast(ev, n, d) {
+            ev.preventDefault();
+            if(ev.dataTransfer.getData("text") !== "drag-last") return;
+
+            document.getElementById('drag-last').remove();
+            
+            let fractionHTML = `
+                <div class="fraction">
+                    <div class="num">${n}</div>
+                    <div class="den">${d}</div>
+                </div>
+            `;
+
+            let line = document.getElementById('sub-steps-container').lastElementChild;
+            line.innerHTML = `${p.v2} = ${fractionHTML}`;
+
+            document.getElementById('guide').innerText = `Resolva a fração final!`;
+            
+            document.getElementById('sub-steps-container').innerHTML += `
+                <div class=\"math-line\" style=\"margin:0; justify-content: flex-start;\">\n                    ${p.v2} = ${fractionHTML} = <input type=\"number\" id=\"in-final\">\n                </div>\n            `;
+
+            document.getElementById('action-area').innerHTML = `<button onclick="checkFinal(${n/d})">Finalizar Problema</button>`;
+        }
+
+        function checkFinal(ans) {
+            if(parseFloat(document.getElementById('in-final').value) !== ans) { showError("Erro na última divisão!"); return; }
+            finishLevel(ans);
+        }
+
+        function finishLevel(ans) {
+            document.getElementById('guide').innerText = "🎉 PARABÉNS! Sistema resolvido perfeitamente!";
+            document.getElementById('action-area').innerHTML = `<button style="background:var(--success)" onclick="next()">Próximo Nível</button>`;
+        }
+
+        async function next() {
+            cur++;
+            if(cur < problems.length) { 
+                init(); 
+            } else { 
+                document.getElementById('guide').innerText = "Enviando seus resultados para o professor Natanael...";
+                document.getElementById('action-area').innerHTML = ''; 
+                
+                const { data, error } = await clienteSupabase
+                    .from('progresso_matematica')
+                    .insert([
+                        { 
+                            nome_aluno: nomeAlunoAtual, 
+                            turma: '9º 4', 
+                            atividade: 'Eliminação - Sistemas de Equações' 
+                        }
+                    ]);
+
+                if (error) {
+                    console.error('Erro ao salvar no banco:', error);
+                    alert("Atenção: Ocorreu um erro de rede ao registrar. Tire um print e avise o professor Natanael na sala.");
+                } else {
+                    alert(`Parabéns, ${nomeAlunoAtual}! Sua atividade foi registrada com sucesso!`);
+                }
+                
+                location.reload(); 
+            }
+        }
+
+        function showError(msg) {
+            let fb = document.getElementById('feedback');
+            fb.innerHTML = `<span class="incorrect">${msg}</span>`;
+            setTimeout(() => { fb.innerHTML = ''; }, 2000);
+        }
+
+    </script>
+</body>
+</html>
